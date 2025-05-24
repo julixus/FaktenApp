@@ -2,6 +2,7 @@ package de.thnuernberg.bme.faktenapp;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import static android.provider.BaseColumns._ID;
@@ -42,5 +43,10 @@ public class FactsTable extends SQLiteOpenHelper {
         values.put(IMAGE_PATH, imagePath);
         db.insert(TABLE_NAME, null, values);
         //db.close();
+    }
+
+    public Cursor getFacts() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_NAME, null);
     }
 }

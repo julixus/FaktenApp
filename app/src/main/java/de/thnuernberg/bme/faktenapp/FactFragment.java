@@ -33,12 +33,12 @@ public class FactFragment extends Fragment {
     public FactFragment() { }
 
     // Optional: Factory-Methode mit Argumenten
-    public static FactFragment newInstance(String title, String text, int imageResId) {
+    public static FactFragment newInstance(String title, String text, String imageResId) {
         FactFragment fragment = new FactFragment();
         Bundle args = new Bundle();
         args.putString("title", title);
         args.putString("text", text);
-        args.putInt("imageResId", imageResId);
+        args.putString("imageResId", imageResId);
         fragment.setArguments(args);
         return fragment;
     }

@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity implements FactFragment.OnFa
 
         // Hinzufügen des Fact-Fragments
         FactFragment factFragment = FactFragment.newInstance(
-                "Wusstest du schon?", "Bienen können Farben sehen!", R.drawable.hai); // Ersetze durch dein Bild
+                "Wusstest du schon?", "Bienen können Farben sehen!", String.valueOf(R.drawable.hai)); // Ersetze durch dein Bild
 
         getSupportFragmentManager().beginTransaction().replace(R.id.fact_container, factFragment).commit();
 

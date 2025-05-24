@@ -2,6 +2,7 @@ package de.thnuernberg.bme.faktenapp;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -21,13 +22,19 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
                     "In Deutschland muss das verwendete Mehl zu mindestens 90 % aus Weizenmehl bestehen, damit es im Handel als Weißbrot verkauft werden darf.[1] Außerdem können bis zu 10 % Prozent andere Getreideerzeugnisse zugegeben werden. Das Brot enthält weniger als 10 Gewichtsanteile Fett und/oder Zucker auf 90 Gewichtsanteile Getreide und/oder Getreideerzeugnisse."};
     int[] fact_images = {R.drawable.cheese, R.drawable.bike, R.drawable.brot};
 
+    private FactsTable factsTable;
+    private Cursor factCursor;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.explore);
 
-        nextFact();
+        factsTable = new FactsTable(this);
+        factCursor = factsTable.getFacts();
 
+        nextFact();
 
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
@@ -67,7 +74,7 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
     }
 
     public void nextFact() {
-        FactFragment factFragment = FactFragment.newInstance(
+        /*FactFragment factFragment = FactFragment.newInstance(
                 fact_titles[fact_counter], fact_texts[fact_counter], fact_images[fact_counter]);
         getSupportFragmentManager().beginTransaction().replace(R.id.fact_container, factFragment).commit();
 
@@ -79,6 +86,31 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
             Log.v("fact_counter", String.valueOf(fact_counter) + "rest in rip");
             Toast.makeText(this, "Das waren alle Fakten!", Toast.LENGTH_SHORT).show();
         }
-        Log.v("fact_counter", String.valueOf(fact_counter) + " / " + fact_titles.length);
+        Log.v("fact_counter", String.valueOf(fact_counter) + " / " + fact_titles.length);*/
+
+        if (factCursor != null && factCursor.moveToPosition(fact_counter)) {
+
+            String title = factCursor.getString(factCursor.getColumnIndexOrThrow("FACT_TITLE"));
+            String text = factCursor.getString(factCursor.getColumnIndexOrThrow("FACT_TEXT"));
+            String imagePath = factCursor.getString(factCursor.getColumnIndexOrThrow("IMAGE_PATH"));
+
+            FactFragment fragment = FactFragment.newInstance(title, text, imagePath); //TODO: Image path als String in Fact Fragment
+
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fact_container, fragment)
+                    .commit();
+
+            fact_counter++;
+
+            // Wenn du durch alle Fakten durch willst, kannst du wieder von vorne anfangen:
+            if (fact_counter >= factCursor.getCount()) {
+                fact_counter = 0;
+            }
+        } else {
+            // keine Daten vorhanden
+            Toast.makeText(this, "Keine Fakten gefunden", Toast.LENGTH_SHORT).show();
+        }
     }
+
+
 }
