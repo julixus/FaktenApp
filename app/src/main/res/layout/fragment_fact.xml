@@ -33,14 +33,14 @@
 
         <Button
             android:id="@+id/btn_like"
-            android:text="Gefällt mir"
+            android:text="Interessant"
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content" />
 
         <Button
             android:id="@+id/btn_dislike"
-            android:text="Gefällt mir nicht"
+            android:text="Mir Egal"
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content" />

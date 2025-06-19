@@ -5,6 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+
 import static android.provider.BaseColumns._ID;
 
 public class FactsTable extends SQLiteOpenHelper {
@@ -46,7 +48,14 @@ public class FactsTable extends SQLiteOpenHelper {
     }
 
     public Cursor getFacts() {
+        Log.v("FactsTable", "getFacts called");
+
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_NAME, null);
+    }
+
+    public void deleteFact(int factId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_NAME, _ID + " = ?", new String[]{String.valueOf(factId)});
     }
 }

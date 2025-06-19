@@ -3,6 +3,7 @@ package de.thnuernberg.bme.faktenapp;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -58,6 +59,8 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
             }
             return false;
         });
+
+        bottomNav.setSelectedItemId(R.id.navigation_explore);
     }
 
 
@@ -65,34 +68,31 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
     public void onFactLiked() {
         // Hier reagierst du auf "Gefällt mir" → lade nächsten Fakt
         nextFact();
+        Log.v("explore", "liked");
     }
 
     @Override
     public void onFactDisliked() {
         // Hier reagierst du auf "Gefällt mir nicht"
         nextFact();
+        Log.v("explore", "disliked");
     }
 
     public void nextFact() {
-        /*FactFragment factFragment = FactFragment.newInstance(
-                fact_titles[fact_counter], fact_texts[fact_counter], fact_images[fact_counter]);
-        getSupportFragmentManager().beginTransaction().replace(R.id.fact_container, factFragment).commit();
-
-        if (fact_counter + 1 < fact_titles.length) {
-            fact_counter++;
-            Log.v("fact_counter", "fact counter ++");
-        }
-        else if (fact_counter +1 == fact_titles.length) {
-            Log.v("fact_counter", String.valueOf(fact_counter) + "rest in rip");
-            Toast.makeText(this, "Das waren alle Fakten!", Toast.LENGTH_SHORT).show();
-        }
-        Log.v("fact_counter", String.valueOf(fact_counter) + " / " + fact_titles.length);*/
 
         if (factCursor != null && factCursor.moveToPosition(fact_counter)) {
 
-            String title = factCursor.getString(factCursor.getColumnIndexOrThrow("FACT_TITLE"));
-            String text = factCursor.getString(factCursor.getColumnIndexOrThrow("FACT_TEXT"));
-            String imagePath = factCursor.getString(factCursor.getColumnIndexOrThrow("IMAGE_PATH"));
+            String title = factCursor.getString(factCursor.getColumnIndexOrThrow("fact_title"));
+            Log.v("title", "" + title);
+            String text = factCursor.getString(factCursor.getColumnIndexOrThrow("fact_text"));
+            Log.v("text", "" + text);
+            String imagePath = factCursor.getString(factCursor.getColumnIndexOrThrow("image_path"));
+            if (imagePath == null || imagePath.isEmpty()) {
+                // Verwende einen speziellen String, um später das Drawable zu laden
+                imagePath = "drawable://" + R.drawable.hai;
+            }
+
+            Log.v("image", "" + imagePath);
 
             FactFragment fragment = FactFragment.newInstance(title, text, imagePath); //TODO: Image path als String in Fact Fragment
 
@@ -106,10 +106,10 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
             if (fact_counter >= factCursor.getCount()) {
                 fact_counter = 0;
             }
-        } else {
-            // keine Daten vorhanden
-            Toast.makeText(this, "Keine Fakten gefunden", Toast.LENGTH_SHORT).show();
-        }
+            } else {
+                // keine Daten vorhanden
+                Toast.makeText(this, "Keine Fakten gefunden", Toast.LENGTH_SHORT).show();
+            }
     }
 
 

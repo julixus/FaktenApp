@@ -1,73 +1,94 @@
 package de.thnuernberg.bme.faktenapp;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-public class CreateActivity extends Activity {
+public class CreateActivity extends AppCompatActivity {
 
-    FactsTable factsTable;
-    private static final int IMAGE_PICK_REQUEST = 100;
-    private Uri selectedImageUri;
+    private EditText titleInput, textInput;
     private ImageView imagePreview;
+    private Button selectImageButton, saveButton;
 
-    private String image_path;
+    private String image_path = null;
+
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private BottomNavigationView bottomNav;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add);
 
+        bottomNav = findViewById(R.id.bottom_navigation);
         createNavbar();
 
+        titleInput = findViewById(R.id.title_input);
+        textInput = findViewById(R.id.text_input);
         imagePreview = findViewById(R.id.image_preview);
+        selectImageButton = findViewById(R.id.select_image_button);
+        saveButton = findViewById(R.id.save_fact_button);
 
-        FloatingActionButton btnSelectImage = findViewById(R.id.btn_upload_image);
-        btnSelectImage.setOnClickListener(v -> openImagePicker());
+        // === Bildauswahl registrieren ===
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
 
-        Button upload = findViewById(R.id.btn_upload);
-        upload.setOnClickListener(v -> onUploadClick());
+                        if (uri != null) {
+                            // Zugriff merken
+                            getContentResolver().takePersistableUriPermission(
+                                    uri,
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            );
 
+                            image_path = uri.toString(); // Speichern für Datenbank
+                            imagePreview.setImageURI(uri); // Vorschau anzeigen
+                            Log.d("Bild", "URI: " + image_path);
+                        }
+                    }
+                }
+        );
 
-    }
+        // === Button: Bild auswählen ===
+        selectImageButton.setOnClickListener(v -> openImagePicker());
 
-    private void openImagePicker() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType("image/*");
-        startActivityForResult(intent, IMAGE_PICK_REQUEST);
-    }
+        // === Button: Fakt speichern ===
+        saveButton.setOnClickListener(v -> {
+            String title = titleInput.getText().toString().trim();
+            String text = textInput.getText().toString().trim();
+            FactsTable dbHelper = new FactsTable(this);
 
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == IMAGE_PICK_REQUEST && resultCode == RESULT_OK && data != null) {
-            selectedImageUri = data.getData();
-
-            if (selectedImageUri != null) {
-                imagePreview.setImageURI(selectedImageUri); // Vorschau anzeigen
-                Log.d("Bild", "URI: " + selectedImageUri.toString());
-
-                // Speichern in DB später z. B. so:
-                image_path = selectedImageUri.toString();
-                // db.insert(... imagePath ...)
+            if (title.isEmpty() || text.isEmpty()) {
+                // einfache Validierung
+                Log.e("Create", "Titel oder Text fehlt");
+                return;
             }
-        }
+
+            // ⬇ Hier würdest du deine SQLite-Insert-Methode aufrufen:
+            // Beispiel:
+            dbHelper.addFact(title, text, image_path);
+
+            Log.d("Create", "Fakt gespeichert: " + title + ", Bild: " + image_path);
+
+            finish(); // zur vorherigen Activity zurück
+        });
     }
 
-    private void createNavbar(){
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
-
+    private void createNavbar() {
         bottomNav.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.navigation_home) {
@@ -87,16 +108,16 @@ public class CreateActivity extends Activity {
             }
             return false;
         });
+        bottomNav.setSelectedItemId(R.id.navigation_create);
     }
 
-    public void onUploadClick() {
-        EditText title = findViewById(R.id.edit_Title);
-        EditText text = findViewById(R.id.edit_Text);
-        Button upload_img = findViewById(R.id.btn_upload_image);
-        String fact_title = title.getText().toString();
-        String fact_text = text.getText().toString();
-        factsTable.addFact(fact_title, fact_text, image_path); //TODO: Bild URL fixen
-        Toast.makeText(this, "hochgeladen!", Toast.LENGTH_SHORT).show();
-    }
+    private void openImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
+        imagePickerLauncher.launch(intent);
+    }
 }

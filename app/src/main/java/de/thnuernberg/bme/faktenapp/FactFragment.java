@@ -1,6 +1,7 @@
 package de.thnuernberg.bme.faktenapp;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -23,7 +24,7 @@ public class FactFragment extends Fragment {
 
     private String title;
     private String text;
-    private int imageResId;
+    private String imageResId;
     private int profileResId;
 
     Button btnLike;
@@ -56,7 +57,7 @@ public class FactFragment extends Fragment {
         if (getArguments() != null) {
             title = getArguments().getString("title");
             text = getArguments().getString("text");
-            imageResId = getArguments().getInt("imageResId");
+            imageResId = getArguments().getString("imageResId");
             profileResId = getArguments().getInt("profileResId");
         }
     }
@@ -74,7 +75,19 @@ public class FactFragment extends Fragment {
 
         titleView.setText(title);
         textView.setText(text);
-        imageView.setImageResource(imageResId);
+        //imageView.setImageURI(Uri.parse(imageResId));
+        /*if (imageResId != null && imageResId.startsWith("drawable://")) {
+            int resId = Integer.parseInt(imageResId.replace("drawable://", ""));
+            imageView.setImageResource(resId);
+        } else {
+            imageView.setImageURI(Uri.parse(imageResId));
+        }*/
+        try {
+            imageView.setImageURI(Uri.parse(imageResId));
+        } catch (Exception e) {
+            imageView.setImageResource(R.drawable.hai);
+        }
+
 
         btnLike.setOnClickListener(v -> {
             if (listener != null) listener.onFactLiked();
