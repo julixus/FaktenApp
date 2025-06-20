@@ -24,4 +24,13 @@
         app:menu="@menu/bottom_bar"
         tools:layout_editor_absoluteX="0dp" />
 
+    <TextView
+        android:id="@+id/text_acc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteY="85dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

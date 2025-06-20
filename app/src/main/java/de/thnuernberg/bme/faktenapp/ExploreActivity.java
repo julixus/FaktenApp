@@ -1,30 +1,39 @@
 package de.thnuernberg.bme.faktenapp;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-public class ExploreActivity extends AppCompatActivity implements FactFragment.OnFactInteractionListener {
+public class ExploreActivity extends AppCompatActivity implements FactFragment.OnFactInteractionListener, SensorEventListener {
 
     int fact_counter = 0;
-    String[] fact_titles = {"Käse ist sehr gesund", "Fahrradfahren ist overrated", "Das ist kein Brot"};
-    String[] fact_texts = {"Käse ist ein festes Milcherzeugnis,[1] das – bis auf wenige Ausnahmen – durch Gerinnen aus einem Eiweißanteil der Milch, dem Kasein, gewonnen wird. Es ist das älteste Verfahren zur Haltbarmachung von Milch und deren Erzeugnissen. Das neuhochdeutsche Wort „Käse“ geht über mittelhochdeutsch kæse (auch kese und khese[2]), „Käse, Quark“, althochdeutsch kāsi auf lateinisch caseus (eigentlich: „Gegorenes, sauer Gewordenes“) zurück, das unter anderem auch dem englischen Wort cheese und dem spanischen queso zu Grunde liegt.",
-            "Im Allgemeinen gilt: Sie dürfen als Fahrradfahrer zu zweit nebeneinander fahren, solange der Verkehr nicht behindert wird. Eine Behinderung liegt vor, wenn Sie nebeneinander fahren und Sie von anderen Verkehrsteilnehmern nicht mehr überholt werden können, obwohl dies möglich wäre, wenn Sie hintereinanderfahren würden.",
-            "Weißbrot (auch Weizenbrot) ist Brot, das aus Weizenmehl gebacken wird. Als Backtriebmittel wird vorwiegend Hefe, seltener Weizensauer verwendet.\n" +
-                    "\n" +
-                    "In Deutschland muss das verwendete Mehl zu mindestens 90 % aus Weizenmehl bestehen, damit es im Handel als Weißbrot verkauft werden darf.[1] Außerdem können bis zu 10 % Prozent andere Getreideerzeugnisse zugegeben werden. Das Brot enthält weniger als 10 Gewichtsanteile Fett und/oder Zucker auf 90 Gewichtsanteile Getreide und/oder Getreideerzeugnisse."};
-    int[] fact_images = {R.drawable.cheese, R.drawable.bike, R.drawable.brot};
 
     private FactsTable factsTable;
     private Cursor factCursor;
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private SensorEventListener sensorListener;
+
+    private static final float TILT_THRESHOLD = 7.0f; // Empfindlichkeit
+    private long lastTriggerTime = 0;
+    private static final long TRIGGER_COOLDOWN_MS = 2000; // 1 Sekunde Pause zwischen Aktionen
+
+    TextView acc_text;
+
 
 
     @Override
@@ -32,12 +41,25 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
         super.onCreate(savedInstanceState);
         setContentView(R.layout.explore);
 
+        acc_text = findViewById(R.id.text_acc);
+        acc_text.setText("text");
+
         factsTable = new FactsTable(this);
         factCursor = factsTable.getFacts();
 
         nextFact();
 
+        makeBottomNav();
 
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
+
+    }
+
+
+    private void makeBottomNav() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
         bottomNav.setOnItemSelectedListener(item -> {
@@ -59,14 +81,15 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
             }
             return false;
         });
-
         bottomNav.setSelectedItemId(R.id.navigation_explore);
     }
+
 
 
     @Override
     public void onFactLiked() {
         // Hier reagierst du auf "Gefällt mir" → lade nächsten Fakt
+        Toast.makeText(this, "interessant", Toast.LENGTH_SHORT).show();
         nextFact();
         Log.v("explore", "liked");
     }
@@ -74,6 +97,7 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
     @Override
     public void onFactDisliked() {
         // Hier reagierst du auf "Gefällt mir nicht"
+        Toast.makeText(this, "egal", Toast.LENGTH_SHORT).show();
         nextFact();
         Log.v("explore", "disliked");
     }
@@ -112,5 +136,55 @@ public class ExploreActivity extends AppCompatActivity implements FactFragment.O
             }
     }
 
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        Log.v("ExploreActivity", "Sensor event received");
+
+        float x = event.values[0]; // Links-/Rechtsbewegung
+        float y = event.values[1]; // Vor-/Rückwärtsbewegung
+        float z = event.values[2]; // Drehung
+        String text = "x: " + x + "; y: " + y + "; z: " + z;
+        acc_text.setText(text);
+
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastTriggerTime < TRIGGER_COOLDOWN_MS) {
+            return; // Cooldown aktiv
+        }
+
+        if (x > TILT_THRESHOLD) {
+            // Nach links geschwenkt → Dislike
+            onFactLiked();
+            lastTriggerTime = currentTime;
+        } else if (x < -TILT_THRESHOLD) {
+            // Nach rechts geschwenkt → Like
+            onFactDisliked();
+            lastTriggerTime = currentTime;
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        Log.d("ExploreActivity", "Sensor accuracy changed: " + accuracy);
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (sensorManager != null && accelerometer != null) {
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
+        }
+        else {
+            Log.v("ExploreActivity", "Accelerometer not available");
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }    }
 
 }
